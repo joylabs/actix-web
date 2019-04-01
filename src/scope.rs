@@ -935,4 +935,80 @@ mod tests {
             HeaderValue::from_static("0001")
         );
     }
+
+    #[test]
+    fn test_same_route() {
+        let mut srv = init_service(App::new().service(
+            web::scope("").service(web::resource("hello").to(|| HttpResponse::Ok())),
+        ));
+
+        let req = TestRequest::with_uri("/app/test").to_request();
+        let resp = call_success(&mut srv, req);
+
+        println!("{:?}", resp);
+
+        let req = TestRequest::with_uri("/").method(Method::GET).to_request();
+        let resp = call_success(&mut srv, req);
+
+        println!("{:?}", resp);
+
+        let req = TestRequest::with_uri("/hello")
+            .method(Method::GET)
+            .to_request();
+        let resp = call_success(&mut srv, req);
+
+        println!("{:?}", resp);
+
+        let mut srv = init_service(
+            App::new()
+                .service(
+                    web::scope("")
+                        .service(web::resource("other").to(|| HttpResponse::Created())),
+                )
+                .service(
+                    web::scope("")
+                        .service(web::resource("hello").to(|| HttpResponse::Ok())),
+                ),
+        );
+
+        let req = TestRequest::with_uri("/hello")
+            .method(Method::GET)
+            .to_request();
+        let resp = call_success(&mut srv, req);
+
+        println!("Hello: {:?}", resp);
+
+        let req = TestRequest::with_uri("/other")
+            .method(Method::GET)
+            .to_request();
+        let resp = call_success(&mut srv, req);
+
+        println!("Other: {:?}", resp);
+
+        let mut srv = init_service(
+            App::new()
+                .service(
+                    web::scope("/endpoint")
+                        .service(web::resource("other").to(|| HttpResponse::Created())),
+                )
+                .service(
+                    web::scope("/endpoint")
+                        .service(web::resource("hello").to(|| HttpResponse::Ok())),
+                ),
+        );
+
+        let req = TestRequest::with_uri("/endpoint/hello")
+            .method(Method::GET)
+            .to_request();
+        let resp = call_success(&mut srv, req);
+
+        println!("Hello 2: {:?}", resp);
+
+        let req = TestRequest::with_uri("/endpoint/other")
+            .method(Method::GET)
+            .to_request();
+        let resp = call_success(&mut srv, req);
+
+        println!("Other 3: {:?}", resp);
+    }
 }
